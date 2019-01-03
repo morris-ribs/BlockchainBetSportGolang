@@ -7,7 +7,11 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var controller = &Controller{blockchain: &Blockchain{}}
+var controller = &Controller{
+	blockchain: &Blockchain{
+		Chain:        Blocks{},
+		PendingBets:  Bets{},
+		NetworkNodes: []string{}}}
 
 // Route defines a route
 type Route struct {
