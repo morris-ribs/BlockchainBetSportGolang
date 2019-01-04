@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 //Controller ...
@@ -407,12 +409,26 @@ func (c *Controller) Consensus(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// GET /match/:matchId
-func (c *Controller) GetMatch(w http.ResponseWriter, r *http.Request) {
+//GetBetsForMatch GET /match/{matchId} retrieves all bets for a match
+func (c *Controller) GetBetsForMatch(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	matchID := vars["matchId"]
 
+	bets := c.blockchain.GetBetsForMatch(matchID)
+	w.WriteHeader(http.StatusOK)
+	data, _ := json.Marshal(bets)
+	w.Write(data)
+	return
 }
 
-// GET /player/:playerName
-func (c *Controller) GetPlayersMatch(w http.ResponseWriter, r *http.Request) {
+//GetBetsForPlayer GET /player/{playerName}
+func (c *Controller) GetBetsForPlayer(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	playerName := vars["playerName"]
 
+	bets := c.blockchain.GetBetsForPlayer(playerName)
+	w.WriteHeader(http.StatusOK)
+	data, _ := json.Marshal(bets)
+	w.Write(data)
+	return
 }

@@ -85,6 +85,18 @@ var routes = Routes{
 		"/consensus",
 		controller.Consensus,
 	},
+	Route{
+		"GetBetsForMatch",
+		"GET",
+		"/match/{matchId}",
+		controller.GetBetsForMatch,
+	},
+	Route{
+		"GetBetsForPlayer",
+		"GET",
+		"/player/{playerName}",
+		controller.GetBetsForPlayer,
+	},
 }
 
 //NewRouter configures a new router to the API

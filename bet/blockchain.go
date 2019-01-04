@@ -110,3 +110,47 @@ func (b *Blockchain) ChainIsValid() bool {
 
 	return (correctNonce && correctPreviousBlockHash && correctHash && correctBets)
 }
+
+//GetBetsForMatch ...
+func (b *Blockchain) GetBetsForMatch(matchID string) Bets {
+	matchBets := Bets{}
+	i := 0
+	chainLength := len(b.Chain)
+	for i < chainLength {
+		block := b.Chain[i]
+		betsInBlock := block.Bets
+		j := 0
+		betsLength := len(betsInBlock)
+		for j < betsLength {
+			bet := betsInBlock[j]
+			if bet.MatchID == matchID {
+				matchBets = append(matchBets, bet)
+			}
+			j = j + 1
+		}
+		i = i + 1
+	}
+	return matchBets
+}
+
+//GetBetsForPlayer ...
+func (b *Blockchain) GetBetsForPlayer(playerName string) Bets {
+	matchBets := Bets{}
+	i := 0
+	chainLength := len(b.Chain)
+	for i < chainLength {
+		block := b.Chain[i]
+		betsInBlock := block.Bets
+		j := 0
+		betsLength := len(betsInBlock)
+		for j < betsLength {
+			bet := betsInBlock[j]
+			if bet.PlayerName == playerName {
+				matchBets = append(matchBets, bet)
+			}
+			j = j + 1
+		}
+		i = i + 1
+	}
+	return matchBets
+}
