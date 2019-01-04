@@ -62,7 +62,7 @@ var routes = Routes{
 		controller.RegisterBet,
 	},
 	Route{
-		"RegisterBet",
+		"RegisterAndBroadcastBet",
 		"POST",
 		"/bet/broadcast",
 		controller.RegisterAndBroadcastBet,
@@ -79,6 +79,10 @@ var routes = Routes{
 func NewRouter(nodeAddress string) *mux.Router {
 	router := mux.NewRouter().StrictSlash(true)
 	controller.currentNodeURL = "http://localhost:" + nodeAddress
+
+	// create Genesis block
+	controller.blockchain.CreateNewBlock(100, "0", "0")
+
 	for _, route := range routes {
 		var handler http.Handler
 		handler = route.HandlerFunc
