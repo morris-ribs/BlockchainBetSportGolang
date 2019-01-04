@@ -1,6 +1,10 @@
 package bet
 
-import "time"
+import (
+	"crypto/sha256"
+	"strconv"
+	"time"
+)
 
 //RegisterBet registers a bet in our blockchain
 func (b *Blockchain) RegisterBet(bet Bet) bool {
@@ -26,8 +30,9 @@ func (b *Blockchain) RegisterNode(node string) bool {
 }
 
 //CreateNewBlock ...
-func (b *Blockchain) CreateNewBlock(nonce int32, previousBlockHash string, hash string) Block {
+func (b *Blockchain) CreateNewBlock(nonce int, previousBlockHash string, hash string) Block {
 	newBlock := Block{
+		Index:     len(b.Chain) + 1,
 		Bets:      b.PendingBets,
 		Timestamp: time.Now(),
 		Nonce:     nonce,
@@ -39,3 +44,26 @@ func (b *Blockchain) CreateNewBlock(nonce int32, previousBlockHash string, hash 
 }
 
 //GetLastBlock ...
+func (b *Blockchain) GetLastBlock() Block {
+	return b.Chain[len(b.Chain)-1]
+}
+
+//HashBlock ...
+func (b *Blockchain) HashBlock(previousBlockHash string, currentBlockData string, nonce int) string {
+	h := sha256.New()
+	strToHash := previousBlockHash + currentBlockData + strconv.Itoa(nonce)
+	h.Write([]byte(strToHash))
+	return string(h.Sum(nil)[:])
+}
+
+//ProofOfWork ...
+func (b *Blockchain) ProofOfWork(previousBlockHash string, currentBlockData string) int {
+	nonce := 0
+	hash := b.HashBlock(previousBlockHash, currentBlockData, nonce)
+	inputFmt := hash[0:4]
+	for inputFmt != "0000" {
+		nonce = nonce + 1
+		hash = b.HashBlock(previousBlockHash, currentBlockData, nonce)
+	}
+	return nonce
+}

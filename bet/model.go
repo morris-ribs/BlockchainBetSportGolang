@@ -15,10 +15,10 @@ type Bets []Bet
 
 //Block ...
 type Block struct {
-	Index             int32
+	Index             int
 	Timestamp         time.Time
 	Bets              Bets
-	Nonce             int32
+	Nonce             int
 	Hash              string
 	PreviousBlockHash string
 }
