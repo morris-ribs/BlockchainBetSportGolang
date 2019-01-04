@@ -73,6 +73,12 @@ var routes = Routes{
 		"/mine",
 		controller.Mine,
 	},
+	Route{
+		"ReceiveNewBlock",
+		"POST",
+		"/receive-new-block",
+		controller.ReceiveNewBlock,
+	},
 }
 
 //NewRouter configures a new router to the API

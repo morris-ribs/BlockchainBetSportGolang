@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 //Controller ...
@@ -110,6 +111,27 @@ func (c *Controller) RegisterAndBroadcastBet(w http.ResponseWriter, r *http.Requ
 
 //Mine GET /mine
 func (c *Controller) Mine(w http.ResponseWriter, r *http.Request) {
+	lastBlock := c.blockchain.GetLastBlock()
+	previousBlockHash := lastBlock.Hash
+	currentBlockData := strconv.Itoa(lastBlock.Index - 1)
+
+	nonce := c.blockchain.ProofOfWork(previousBlockHash, currentBlockData)
+	blockHash := c.blockchain.HashBlock(previousBlockHash, currentBlockData, nonce)
+	newBlock := c.blockchain.CreateNewBlock(nonce, previousBlockHash, blockHash)
+	blockToBroadcast, _ := json.Marshal(newBlock)
+
+	for _, node := range c.blockchain.NetworkNodes {
+		if node != c.currentNodeURL {
+			// call /receive-new-block in node
+			MakePostCall(node+"/receive-new-block", blockToBroadcast)
+		}
+	}
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+	var resp ResponseToSend
+	resp.Note = "New block mined and broadcast successfully."
+	data, _ := json.Marshal(resp)
+	w.Write(data)
 
 }
 
@@ -265,7 +287,47 @@ func (c *Controller) RegisterAndBroadcastNode(w http.ResponseWriter, r *http.Req
 	return
 }
 
-// GET /consensus
+//ReceiveNewBlock POST /receive-new-block
+func (c *Controller) ReceiveNewBlock(w http.ResponseWriter, r *http.Request) {
+	body, err := ioutil.ReadAll(r.Body) // read the body of the request
+	if err != nil {
+		log.Fatalln("Error ReceiveNewBlock", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err := r.Body.Close(); err != nil {
+		log.Fatalln("Error ReceiveNewBlock", err)
+	}
+
+	var blockReceived Block
+	if err := json.Unmarshal(body, &blockReceived); err != nil { // unmarshall body contents as a type Candidate
+		w.WriteHeader(422) // unprocessable entity
+		if err := json.NewEncoder(w).Encode(err); err != nil {
+			log.Fatalln("Error RegisterNode unmarshalling data", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	var resp ResponseToSend
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	// append block to blockchain
+	if c.blockchain.CheckNewBlockHash(blockReceived) {
+		resp.Note = "New Block received and accepted."
+		c.blockchain.PendingBets = Bets{}
+		c.blockchain.Chain = append(c.blockchain.Chain, blockReceived)
+	} else {
+		resp.Note = "New Block rejected."
+	}
+
+	data, _ := json.Marshal(resp)
+	w.Write(data)
+	return
+}
+
+//Consensus GET /consensus
 func (c *Controller) Consensus(w http.ResponseWriter, r *http.Request) {
 
 }

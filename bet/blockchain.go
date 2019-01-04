@@ -2,6 +2,7 @@ package bet
 
 import (
 	"crypto/sha256"
+	"encoding/base64"
 	"strconv"
 	"time"
 )
@@ -53,7 +54,8 @@ func (b *Blockchain) HashBlock(previousBlockHash string, currentBlockData string
 	h := sha256.New()
 	strToHash := previousBlockHash + currentBlockData + strconv.Itoa(nonce)
 	h.Write([]byte(strToHash))
-	return string(h.Sum(nil)[:])
+	hashed := base64.URLEncoding.EncodeToString(h.Sum(nil))
+	return hashed
 }
 
 //ProofOfWork ...
@@ -64,6 +66,16 @@ func (b *Blockchain) ProofOfWork(previousBlockHash string, currentBlockData stri
 	for inputFmt != "0000" {
 		nonce = nonce + 1
 		hash = b.HashBlock(previousBlockHash, currentBlockData, nonce)
+		inputFmt = hash[0:4]
 	}
 	return nonce
+}
+
+//CheckNewBlockHash ...
+func (b *Blockchain) CheckNewBlockHash(newBlock Block) bool {
+	lastBlock := b.GetLastBlock()
+	correctHash := lastBlock.Hash == newBlock.PreviousBlockHash
+	correctIndex := (lastBlock.Index + 1) == newBlock.Index
+
+	return (correctHash && correctIndex)
 }
