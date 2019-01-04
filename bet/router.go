@@ -79,6 +79,12 @@ var routes = Routes{
 		"/receive-new-block",
 		controller.ReceiveNewBlock,
 	},
+	Route{
+		"Consensus",
+		"GET",
+		"/consensus",
+		controller.Consensus,
+	},
 }
 
 //NewRouter configures a new router to the API

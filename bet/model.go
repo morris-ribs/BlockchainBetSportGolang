@@ -1,7 +1,5 @@
 package bet
 
-import "time"
-
 //Bet represents a bet
 type Bet struct {
 	PlayerName   string `json:"playerName"`
@@ -16,7 +14,7 @@ type Bets []Bet
 //Block ...
 type Block struct {
 	Index             int
-	Timestamp         time.Time
+	Timestamp         int64
 	Bets              Bets
 	Nonce             int
 	Hash              string
@@ -31,4 +29,10 @@ type Blockchain struct {
 	Chain        Blocks
 	PendingBets  Bets
 	NetworkNodes []string
+}
+
+//BlockData is used in hash calculations
+type BlockData struct {
+	Index string
+	Bets  Bets
 }

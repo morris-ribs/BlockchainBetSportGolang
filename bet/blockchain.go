@@ -3,6 +3,7 @@ package bet
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"strconv"
 	"time"
 )
@@ -35,7 +36,7 @@ func (b *Blockchain) CreateNewBlock(nonce int, previousBlockHash string, hash st
 	newBlock := Block{
 		Index:     len(b.Chain) + 1,
 		Bets:      b.PendingBets,
-		Timestamp: time.Now(),
+		Timestamp: time.Now().UnixNano(),
 		Nonce:     nonce,
 		Hash:      hash, PreviousBlockHash: previousBlockHash}
 
@@ -60,12 +61,11 @@ func (b *Blockchain) HashBlock(previousBlockHash string, currentBlockData string
 
 //ProofOfWork ...
 func (b *Blockchain) ProofOfWork(previousBlockHash string, currentBlockData string) int {
-	nonce := 0
-	hash := b.HashBlock(previousBlockHash, currentBlockData, nonce)
-	inputFmt := hash[0:4]
+	nonce := -1
+	inputFmt := ""
 	for inputFmt != "0000" {
 		nonce = nonce + 1
-		hash = b.HashBlock(previousBlockHash, currentBlockData, nonce)
+		hash := b.HashBlock(previousBlockHash, currentBlockData, nonce)
 		inputFmt = hash[0:4]
 	}
 	return nonce
@@ -78,4 +78,35 @@ func (b *Blockchain) CheckNewBlockHash(newBlock Block) bool {
 	correctIndex := (lastBlock.Index + 1) == newBlock.Index
 
 	return (correctHash && correctIndex)
+}
+
+//ChainIsValid Used by consensus algorithm
+func (b *Blockchain) ChainIsValid() bool {
+	i := 1
+	for i < len(b.Chain) {
+		currentBlock := b.Chain[i]
+		prevBlock := b.Chain[i-1]
+		currentBlockData := BlockData{Index: strconv.Itoa(prevBlock.Index - 1), Bets: currentBlock.Bets}
+		currentBlockDataAsByteArray, _ := json.Marshal(currentBlockData)
+		currentBlockDataAsStr := base64.URLEncoding.EncodeToString(currentBlockDataAsByteArray)
+		blockHash := b.HashBlock(prevBlock.Hash, currentBlockDataAsStr, currentBlock.Nonce)
+
+		if blockHash[0:4] != "0000" {
+			return false
+		}
+
+		if currentBlock.PreviousBlockHash != prevBlock.Hash {
+			return false
+		}
+
+		i = i + 1
+	}
+
+	genesisBlock := b.Chain[0]
+	correctNonce := genesisBlock.Nonce == 100
+	correctPreviousBlockHash := genesisBlock.PreviousBlockHash == "0"
+	correctHash := genesisBlock.Hash == "0"
+	correctBets := len(genesisBlock.Bets) == 0
+
+	return (correctNonce && correctPreviousBlockHash && correctHash && correctBets)
 }

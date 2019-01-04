@@ -2,6 +2,7 @@ package bet
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -113,10 +114,12 @@ func (c *Controller) RegisterAndBroadcastBet(w http.ResponseWriter, r *http.Requ
 func (c *Controller) Mine(w http.ResponseWriter, r *http.Request) {
 	lastBlock := c.blockchain.GetLastBlock()
 	previousBlockHash := lastBlock.Hash
-	currentBlockData := strconv.Itoa(lastBlock.Index - 1)
+	currentBlockData := BlockData{Index: strconv.Itoa(lastBlock.Index - 1), Bets: c.blockchain.PendingBets}
+	currentBlockDataAsByteArray, _ := json.Marshal(currentBlockData)
+	currentBlockDataAsStr := base64.URLEncoding.EncodeToString(currentBlockDataAsByteArray)
 
-	nonce := c.blockchain.ProofOfWork(previousBlockHash, currentBlockData)
-	blockHash := c.blockchain.HashBlock(previousBlockHash, currentBlockData, nonce)
+	nonce := c.blockchain.ProofOfWork(previousBlockHash, currentBlockDataAsStr)
+	blockHash := c.blockchain.HashBlock(previousBlockHash, currentBlockDataAsStr, nonce)
 	newBlock := c.blockchain.CreateNewBlock(nonce, previousBlockHash, blockHash)
 	blockToBroadcast, _ := json.Marshal(newBlock)
 
@@ -132,7 +135,7 @@ func (c *Controller) Mine(w http.ResponseWriter, r *http.Request) {
 	resp.Note = "New block mined and broadcast successfully."
 	data, _ := json.Marshal(resp)
 	w.Write(data)
-
+	return
 }
 
 //RegisterNode POST /register-node
@@ -194,7 +197,7 @@ func (c *Controller) RegisterNodesBulk(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	log.Println(allNodes)
+
 	for _, node := range allNodes {
 		if node != c.currentNodeURL {
 			success := c.blockchain.RegisterNode(node) // registers the node into the blockchain
@@ -213,10 +216,10 @@ func (c *Controller) RegisterNodesBulk(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-//MakePostCall ...
-func MakePostCall(url string, jsonStr []byte) {
-	// call /register-node in node
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+//MakeCall ...
+func MakeCall(mode string, url string, jsonStr []byte) interface{} {
+	// call url in node
+	req, err := http.NewRequest(mode, url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -226,6 +229,28 @@ func MakePostCall(url string, jsonStr []byte) {
 		log.Println(err)
 	}
 	defer resp.Body.Close()
+	respBody, err := ioutil.ReadAll(resp.Body)
+	var returnValue interface{}
+	if err := json.Unmarshal(respBody, &returnValue); err != nil { // unmarshal body contents as a type Candidate
+		if err != nil {
+			log.Fatalln("Error "+url+" unmarshalling data", err)
+			return nil
+		}
+	}
+	log.Println(returnValue)
+	return returnValue
+}
+
+//MakePostCall ...
+func MakePostCall(url string, jsonStr []byte) {
+	// call url in POST
+	MakeCall("POST", url, jsonStr)
+}
+
+//MakeGetCall ...
+func MakeGetCall(url string, jsonStr []byte) interface{} {
+	// call url in GET
+	return MakeCall("GET", url, jsonStr)
 }
 
 //BroadcastNode broadcasting node
@@ -329,7 +354,57 @@ func (c *Controller) ReceiveNewBlock(w http.ResponseWriter, r *http.Request) {
 
 //Consensus GET /consensus
 func (c *Controller) Consensus(w http.ResponseWriter, r *http.Request) {
+	maxChainLength := 0
+	var longestChain *Blockchain
+	var resp ResponseToSend
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	for _, node := range c.blockchain.NetworkNodes {
+		if node != c.currentNodeURL {
+			// call /blockchain in node
+			// call url in node
+			req, err := http.NewRequest("GET", node+"/blockchain", nil)
+			req.Header.Set("Content-Type", "application/json")
 
+			client := &http.Client{}
+			resp, err := client.Do(req)
+			if err != nil {
+				log.Println("Error retrieving blockchain")
+				log.Println(err)
+			}
+			defer resp.Body.Close()
+			respBody, err := ioutil.ReadAll(resp.Body)
+			var chain *Blockchain
+			if err := json.Unmarshal(respBody, &chain); err != nil { // unmarshal body contents as a type Candidate
+				if err != nil {
+					log.Fatalln("Error unmarshalling data", err)
+				}
+			}
+
+			if chain != nil {
+				chainLength := len(chain.Chain)
+				if maxChainLength < chainLength {
+					maxChainLength = chainLength
+					longestChain = chain
+				}
+			}
+		}
+	}
+
+	log.Println(longestChain.ChainIsValid())
+
+	if maxChainLength > len(c.blockchain.Chain) && longestChain.ChainIsValid() {
+		c.blockchain.Chain = longestChain.Chain
+		c.blockchain.PendingBets = longestChain.PendingBets
+
+		resp.Note = "This chain has been replaced."
+	} else {
+		resp.Note = "This chain has not been replaced."
+	}
+
+	w.WriteHeader(http.StatusOK)
+	data, _ := json.Marshal(resp)
+	w.Write(data)
+	return
 }
 
 // GET /match/:matchId
