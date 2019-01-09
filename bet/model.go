@@ -2,7 +2,7 @@ package bet
 
 //Bet represents a bet
 type Bet struct {
-	PlayerName   string `json:"player_name"`
+	PlayerName   string `json:"player"`
 	MatchID      string `json:"match_id"`
 	TeamOneScore int32  `json:"team_one_score"`
 	TeamTwoScore int32  `json:"team_two_score"`
