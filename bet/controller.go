@@ -259,7 +259,7 @@ func MakeGetCall(url string, jsonStr []byte) interface{} {
 func BroadcastNode(newNode string, nodes []string) {
 	for _, node := range nodes {
 		if node != newNode {
-			var registerNodesJSON = []byte(`{"newNodeUrl":"` + newNode + `"}`)
+			var registerNodesJSON = []byte(`{"newnodeurl":"` + newNode + `"}`)
 
 			// call /register-node in node
 			MakePostCall(node+"/register-node", registerNodesJSON)
@@ -279,7 +279,7 @@ func (c *Controller) RegisterAndBroadcastNode(w http.ResponseWriter, r *http.Req
 		log.Fatalln("Error RegisterNode", err)
 	}
 	var node struct {
-		NewNodeURL string `json:"newNodeUrl"`
+		NewNodeURL string `json:"newnodeurl"`
 	}
 	if err := json.Unmarshal(body, &node); err != nil { // unmarshall body contents as a type Candidate
 		w.WriteHeader(422) // unprocessable entity

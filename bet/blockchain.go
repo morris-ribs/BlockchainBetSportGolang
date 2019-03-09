@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"strconv"
 	"time"
+	"log"
 )
 
 //RegisterBet registers a bet in our blockchain
 func (b *Blockchain) RegisterBet(bet Bet) bool {
+	log.Print(bet.TeamOneScore)
 	b.PendingBets = append(b.PendingBets, bet)
 	return true
 }

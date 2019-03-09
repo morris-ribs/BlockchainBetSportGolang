@@ -4,8 +4,8 @@ package bet
 type Bet struct {
 	PlayerName   string `json:"playername"`
 	MatchID      string `json:"matchid"`
-	TeamOneScore int32  `json:"teamonescore"`
-	TeamTwoScore int32  `json:"teamtwoscore"`
+	TeamOneScore int  	`json:"teamonescore"`
+	TeamTwoScore int  	`json:"teamtwoscore"`
 }
 
 //Bets is an array of Bet
@@ -18,7 +18,7 @@ type Block struct {
 	Bets              Bets   `json:"bets"`
 	Nonce             int    `json:"nonce"`
 	Hash              string `json:"hash"`
-	PreviousBlockHash string `json:"previous_block_hash"`
+	PreviousBlockHash string `json:"previousblockhash"`
 }
 
 //Blocks is an array of Block
