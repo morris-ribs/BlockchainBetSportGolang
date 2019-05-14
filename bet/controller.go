@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -110,6 +111,13 @@ func (c *Controller) RegisterAndBroadcastBet(w http.ResponseWriter, r *http.Requ
 			MakePostCall(node+"/bet", body)
 		}
 	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusCreated)
+	var resp ResponseToSend
+	resp.Note = "Bet created and broadcast successfully."
+	data, _ := json.Marshal(resp)
+	w.Write(data)
 }
 
 //Mine GET /mine
@@ -221,6 +229,8 @@ func (c *Controller) RegisterNodesBulk(w http.ResponseWriter, r *http.Request) {
 //MakeCall ...
 func MakeCall(mode string, url string, jsonStr []byte) interface{} {
 	// call url in node
+	log.Println(mode)
+	log.Println(url)
 	req, err := http.NewRequest(mode, url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 
@@ -412,7 +422,7 @@ func (c *Controller) Consensus(w http.ResponseWriter, r *http.Request) {
 //GetBetsForMatch GET /match/{matchId} retrieves all bets for a match
 func (c *Controller) GetBetsForMatch(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	matchID := vars["matchId"]
+	matchID := strings.ToLower(vars["matchId"])
 
 	bets := c.blockchain.GetBetsForMatch(matchID)
 	w.WriteHeader(http.StatusOK)
@@ -424,7 +434,7 @@ func (c *Controller) GetBetsForMatch(w http.ResponseWriter, r *http.Request) {
 //GetBetsForPlayer GET /player/{playerName}
 func (c *Controller) GetBetsForPlayer(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	playerName := vars["playerName"]
+	playerName := strings.ToLower(vars["playerName"])
 
 	bets := c.blockchain.GetBetsForPlayer(playerName)
 	w.WriteHeader(http.StatusOK)
